@@ -1,4 +1,4 @@
-# ☕ AI Coffee Shop Voice Agent (Name-Last Version)
+# ☕ AI Coffee Shop Voice Agent (AI Voice Agents Challenge)
 
 This project is an **AI-powered coffee ordering voice agent** built using  
 **LiveKit Agents**, **Deepgram STT**, **Google Gemini**, and **Murf TTS**.
