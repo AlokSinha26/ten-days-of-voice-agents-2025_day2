@@ -1,0 +1,10 @@
+{
+    "drinkType": "espresso",
+    "size": "large",
+    "milk": "none",
+    "extras": [
+        "vanilla"
+    ],
+    "name": "Teddy",
+    "timestamp": "2025-11-23T17:31:34.907813"
+}

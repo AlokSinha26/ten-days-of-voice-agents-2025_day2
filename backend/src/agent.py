@@ -1,139 +1,212 @@
+# source_file_url: /mnt/data/dff05c7d-0874-47cd-a4a7-0f490a9b84fd.png
+# ======================================================
+# COFFEE SHOP VOICE AGENT - NAME-LAST VERSION (Alok Sinha)
+# Behavior: Asks for customer's name LAST (records name exactly as spoken)
+# No emojis (Windows-safe)
+# ======================================================
+
+import sys
+import os
+
+# Ensure stdout uses UTF-8 on Windows to avoid encoding errors
+if os.name == "nt":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+
 import logging
+import json
+from datetime import datetime
+from dataclasses import dataclass, field
+from typing import Annotated, Literal
+
+print("\n" + "=" * 80)
+print("AI COFFEE AGENT FOR ALOK SINHA — NAME-LAST VERSION LOADED")
+print("=" * 80 + "\n")
 
 from dotenv import load_dotenv
+from pydantic import Field
 from livekit.agents import (
     Agent,
     AgentSession,
     JobContext,
     JobProcess,
-    MetricsCollectedEvent,
     RoomInputOptions,
     WorkerOptions,
     cli,
     metrics,
-    tokenize,
-    # function_tool,
-    # RunContext
+    MetricsCollectedEvent,
+    RunContext,
+    function_tool,
 )
+
 from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
+load_dotenv(".env.local")
 logger = logging.getLogger("agent")
 
-load_dotenv(".env.local")
+# ORDER STATE
+@dataclass
+class OrderState:
+    drinkType: str | None = None
+    size: str | None = None
+    milk: str | None = None
+    extras: list[str] = field(default_factory=list)
+    name: str | None = None
 
+    def is_complete(self) -> bool:
+        return all([
+            self.drinkType is not None,
+            self.size is not None,
+            self.milk is not None,
+            self.extras is not None,
+            self.name is not None,
+        ])
 
-class Assistant(Agent):
-    def __init__(self) -> None:
+    def get_summary(self) -> str:
+        if not self.is_complete():
+            return "Order in progress"
+        extras_text = f" with {', '.join(self.extras)}" if self.extras else ""
+        return f"{self.size} {self.drinkType} with {self.milk} milk{extras_text} for {self.name}"
+
+    def to_dict(self) -> dict:
+        return {
+            "drinkType": self.drinkType,
+            "size": self.size,
+            "milk": self.milk,
+            "extras": self.extras,
+            "name": self.name,
+        }
+
+@dataclass
+class Userdata:
+    order: OrderState
+    session_start: datetime = field(default_factory=datetime.now)
+
+# FUNCTION TOOLS
+@function_tool
+def set_drink_type(ctx: RunContext[Userdata], drink: Annotated[Literal[
+    "latte", "cappuccino", "americano", "espresso", "mocha", "coffee", "cold brew", "matcha"
+], Field(description="Type of drink")]):
+    ctx.userdata.order.drinkType = drink
+    print(f"[INFO] Drink set: {drink}")
+    return f"Great choice. What size would you like for your {drink}?"
+
+@function_tool
+def set_size(ctx: RunContext[Userdata], size: Annotated[Literal[
+    "small", "medium", "large", "extra large"
+], Field(description="Drink size")]):
+    ctx.userdata.order.size = size
+    print(f"[INFO] Size set: {size}")
+    return f"Got it. What milk would you like in your {size} {ctx.userdata.order.drinkType}?"
+
+@function_tool
+def set_milk(ctx: RunContext[Userdata], milk: Annotated[Literal[
+    "whole", "skim", "almond", "oat", "soy", "coconut", "none"
+], Field(description="Milk type")]):
+    ctx.userdata.order.milk = milk
+    print(f"[INFO] Milk set: {milk}")
+    return "Any extras? (sugar, whipped cream, caramel, extra shot, vanilla, cinnamon, honey, or none)"
+
+@function_tool
+def set_extras(ctx: RunContext[Userdata], extras: Annotated[list[Literal[
+    "sugar", "whipped cream", "caramel", "extra shot", "vanilla", "cinnamon", "honey"
+]] | None, Field(description="Extras list")] = None):
+    ctx.userdata.order.extras = extras if extras else []
+    print(f"[INFO] Extras set: {ctx.userdata.order.extras}")
+    return "Perfect. Finally, whose name should this order be under?"
+
+@function_tool
+def set_name(ctx: RunContext[Userdata], name: Annotated[str, Field(description="Customer name exactly as given")]):
+    # Record the name exactly as the customer says it (strip leading/trailing whitespace only)
+    ctx.userdata.order.name = name.strip()
+    print(f"[INFO] Name recorded exactly as given: {ctx.userdata.order.name}")
+    return f"Got it — recorded name: {ctx.userdata.order.name}. I'll confirm your order now."
+
+@function_tool
+def complete_order(ctx: RunContext[Userdata]):
+    order = ctx.userdata.order
+    if not order.is_complete():
+        missing = []
+        if not order.drinkType: missing.append("drink type")
+        if not order.size: missing.append("size")
+        if not order.milk: missing.append("milk")
+        if order.extras is None: missing.append("extras")
+        if not order.name: missing.append("name")
+        msg = f"Order incomplete. Missing: {', '.join(missing)}"
+        print(f"[WARN] {msg}")
+        return msg
+
+    path = save_order_to_json(order)
+    print(f"[INFO] Order saved: {path}")
+    return f"Order confirmed: {order.get_summary()}"
+
+# SAVE ORDERS
+def get_orders_folder() -> str:
+    base = os.path.dirname(__file__)
+    root = os.path.abspath(os.path.join(base, ".."))
+    folder = os.path.join(root, "orders")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+def save_order_to_json(order: OrderState) -> str:
+    folder = get_orders_folder()
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"order_{ts}.json"
+    path = os.path.join(folder, filename)
+    data = order.to_dict()
+    data["timestamp"] = datetime.now().isoformat()
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+    return path
+
+# BARISTA AGENT
+class BaristaAgent(Agent):
+    def __init__(self):
         super().__init__(
-            instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions=(
+                "You are a friendly AI barista at Alok's Cafe.\n"
+                "IMPORTANT: Collect the order details first — drink type, size, milk, extras.\n"
+                "Ask one question at a time. After collecting all order details, ask for the customer's NAME and record it exactly as given.\n"
+                "Then confirm and complete the order."
+            ),
+            tools=[set_drink_type, set_size, set_milk, set_extras, set_name, complete_order],
         )
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
-
-
-def prewarm(proc: JobProcess):
-    proc.userdata["vad"] = silero.VAD.load()
-
-
+# ENTRYPOINT
 async def entrypoint(ctx: JobContext):
-    # Logging setup
-    # Add any other context you want in all log entries here
-    ctx.log_context_fields = {
-        "room": ctx.room.name,
-    }
+    ctx.log_context_fields = {"room": ctx.room.name}
+    userdata = Userdata(order=OrderState())
 
-    # Set up a voice AI pipeline using OpenAI, Cartesia, AssemblyAI, and the LiveKit turn detector
     session = AgentSession(
-        # Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-        # See all available models at https://docs.livekit.io/agents/models/stt/
         stt=deepgram.STT(model="nova-3"),
-        # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
-        # See all available models at https://docs.livekit.io/agents/models/llm/
-        llm=google.LLM(
-                model="gemini-2.5-flash",
-            ),
-        # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
-        # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
-        tts=murf.TTS(
-                voice="en-US-matthew", 
-                style="Conversation",
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-                text_pacing=True
-            ),
-        # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-        # See more at https://docs.livekit.io/agents/build/turns
+        llm=google.LLM(model="gemini-2.5-flash"),
+        tts=murf.TTS(voice="en-US-matthew", style="Conversation", text_pacing=True),
         turn_detection=MultilingualModel(),
-        vad=ctx.proc.userdata["vad"],
-        # allow the LLM to generate a response while waiting for the end of turn
-        # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation
-        preemptive_generation=True,
+        vad=ctx.proc.userdata.get("vad"),
+        userdata=userdata,
     )
 
-    # To use a realtime model instead of a voice pipeline, use the following session setup instead.
-    # (Note: This is for the OpenAI Realtime API. For other providers, see https://docs.livekit.io/agents/models/realtime/))
-    # 1. Install livekit-agents[openai]
-    # 2. Set OPENAI_API_KEY in .env.local
-    # 3. Add `from livekit.plugins import openai` to the top of this file
-    # 4. Use the following session setup instead of the version above
-    # session = AgentSession(
-    #     llm=openai.realtime.RealtimeModel(voice="marin")
-    # )
-
-    # Metrics collection, to measure pipeline performance
-    # For more information, see https://docs.livekit.io/agents/build/metrics/
     usage_collector = metrics.UsageCollector()
-
     @session.on("metrics_collected")
-    def _on_metrics_collected(ev: MetricsCollectedEvent):
-        metrics.log_metrics(ev.metrics)
+    def _on_metrics(ev: MetricsCollectedEvent):
         usage_collector.collect(ev.metrics)
 
-    async def log_usage():
-        summary = usage_collector.get_summary()
-        logger.info(f"Usage: {summary}")
-
-    ctx.add_shutdown_callback(log_usage)
-
-    # # Add a virtual avatar to the session, if desired
-    # # For other providers, see https://docs.livekit.io/agents/models/avatar/
-    # avatar = hedra.AvatarSession(
-    #   avatar_id="...",  # See https://docs.livekit.io/agents/models/avatar/plugins/hedra
-    # )
-    # # Start the avatar and wait for it to join
-    # await avatar.start(session, room=ctx.room)
-
-    # Start the session, which initializes the voice pipeline and warms up the models
     await session.start(
-        agent=Assistant(),
+        agent=BaristaAgent(),
         room=ctx.room,
-        room_input_options=RoomInputOptions(
-            # For telephony applications, use `BVCTelephony` for best results
-            noise_cancellation=noise_cancellation.BVC(),
-        ),
+        room_input_options=RoomInputOptions(noise_cancellation=noise_cancellation.BVC()),
     )
 
-    # Join the room and connect to the user
     await ctx.connect()
 
+# PREWARM
+def prewarm(proc: JobProcess):
+    proc.userdata["vad"] = silero.VAD.load()
+    print("[INIT] VAD model loaded")
 
+# RUN
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
