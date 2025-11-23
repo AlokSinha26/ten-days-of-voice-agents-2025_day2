@@ -1,214 +1,228 @@
-# AI Voice Agents Challenge - Starter Repository
+# ☕ AI Coffee Shop Voice Agent (Name-Last Version)
 
-Welcome to the **AI Voice Agents Challenge** by [murf.ai](https://murf.ai)!
+This project is an **AI-powered coffee ordering voice agent** built using  
+**LiveKit Agents**, **Deepgram STT**, **Google Gemini**, and **Murf TTS**.
 
-## About the Challenge
+The agent behaves like a real barista:
 
-We just launched **Murf Falcon** – the consistently fastest TTS API, and you're going to be among the first to test it out in ways never thought before!
+- First asks for the drink details  
+- Then size  
+- Then milk  
+- Then extras  
+- **Finally asks: “Whose name should this order be under?”**  
+- Saves the order (including name) exactly as spoken  
+- Stores every completed order as a JSON file in `/orders`
 
-**Build 10 AI Voice Agents over the course of 10 Days** along with help from our devs and the community champs, and win rewards!
-
-### How It Works
-
-- One task to be provided everyday along with a GitHub repo for reference
-- Build a voice agent with specific personas and skills
-- Post on GitHub and share with the world on LinkedIn!
-
-## Repository Structure
-
-This is a **monorepo** that contains both the backend and frontend for building voice agent applications. It's designed to be your starting point for each day's challenge task.
-
-```
-falcon-tdova-nov25-livekit/
-├── backend/          # LiveKit Agents backend with Murf Falcon TTS
-├── frontend/         # React/Next.js frontend for voice interaction
-├── start_app.sh      # Convenience script to start all services
-└── README.md         # This file
-```
-
-### Backend
-
-The backend is based on [LiveKit's agent-starter-python](https://github.com/livekit-examples/agent-starter-python) with modifications to integrate **Murf Falcon TTS** for ultra-fast, high-quality voice synthesis.
-
-**Features:**
-
-- Complete voice AI agent framework using LiveKit Agents
-- Murf Falcon TTS integration for fastest text-to-speech
-- LiveKit Turn Detector for contextually-aware speaker detection
-- Background voice cancellation
-- Integrated metrics and logging
-- Complete test suite with evaluation framework
-- Production-ready Dockerfile
-
-[→ Backend Documentation](./backend/README.md)
-
-### Frontend
-
-The frontend is based on [LiveKit's agent-starter-react](https://github.com/livekit-examples/agent-starter-react), providing a modern, beautiful UI for interacting with your voice agents.
-
-**Features:**
-
-- Real-time voice interaction with LiveKit Agents
-- Camera video streaming support
-- Screen sharing capabilities
-- Audio visualization and level monitoring
-- Light/dark theme switching
-- Highly customizable branding and UI
-
-[→ Frontend Documentation](./frontend/README.md)
-
-## Quick Start
-
-### Prerequisites
-
-Make sure you have the following installed:
-
-- Python 3.9+ with [uv](https://docs.astral.sh/uv/) package manager
-- Node.js 18+ with pnpm
-- [LiveKit CLI](https://docs.livekit.io/home/cli/cli-setup) (optional but recommended)
-- [LiveKit Server](https://docs.livekit.io/home/self-hosting/local/) for local development
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd falcon-tdova-nov25-livekit
-```
-
-### 2. Backend Setup
-
-```bash
-cd backend
-
-# Install dependencies
-uv sync
-
-# Copy environment file and configure
-cp .env.example .env.local
-
-# Edit .env.local with your credentials:
-# - LIVEKIT_URL
-# - LIVEKIT_API_KEY
-# - LIVEKIT_API_SECRET
-# - MURF_API_KEY (for Falcon TTS)
-# - GOOGLE_API_KEY (for Gemini LLM)
-# - DEEPGRAM_API_KEY (for Deepgram STT)
-
-# Download required models
-uv run python src/agent.py download-files
-```
-
-For LiveKit Cloud users, you can automatically populate credentials:
-
-```bash
-lk cloud auth
-lk app env -w -d .env.local
-```
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-pnpm install
-
-# Copy environment file and configure
-cp .env.example .env.local
-
-# Edit .env.local with the same LiveKit credentials
-```
-
-### 4. Run the Application
-
-#### Install livekit server
-
-```bash
-brew install livekit
-```
-
-You have two options:
-
-#### Option A: Use the convenience script (runs everything)
-
-```bash
-# From the root directory
-chmod +x start_app.sh
-./start_app.sh
-```
-
-This will start:
-
-- LiveKit Server (in dev mode)
-- Backend agent (listening for connections)
-- Frontend app (at http://localhost:3000)
-
-#### Option B: Run services individually
-
-```bash
-# Terminal 1 - LiveKit Server
-livekit-server --dev
-
-# Terminal 2 - Backend Agent
-cd backend
-uv run python src/agent.py dev
-
-# Terminal 3 - Frontend
-cd frontend
-pnpm dev
-```
-
-Then open http://localhost:3000 in your browser!
-
-## Daily Challenge Tasks
-
-Each day, you'll receive a new task that builds upon your voice agent. The tasks will help you:
-
-- Implement different personas and conversation styles
-- Add custom tools and capabilities
-- Integrate with external APIs
-- Build domain-specific agents (customer service, tutoring, etc.)
-- Optimize performance and user experience
-
-**Stay tuned for daily task announcements!**
-
-## Documentation & Resources
-
-- [Murf Falcon TTS Documentation](https://murf.ai/api/docs/text-to-speech/streaming)
-- [LiveKit Agents Documentation](https://docs.livekit.io/agents)
-- [Original Backend Template](https://github.com/livekit-examples/agent-starter-python)
-- [Original Frontend Template](https://github.com/livekit-examples/agent-starter-react)
-
-## Testing
-
-The backend includes a comprehensive test suite:
-
-```bash
-cd backend
-uv run pytest
-```
-
-Learn more about testing voice agents in the [LiveKit testing documentation](https://docs.livekit.io/agents/build/testing/).
-
-## Contributing & Community
-
-This is a challenge repository, but we encourage collaboration and knowledge sharing!
-
-- Share your solutions and learnings on GitHub
-- Post about your progress on LinkedIn
-- Join the [LiveKit Community Slack](https://livekit.io/join-slack)
-- Connect with other challenge participants
-
-## License
-
-This project is based on MIT-licensed templates from LiveKit and includes integration with Murf Falcon. See individual LICENSE files in backend and frontend directories for details.
-
-## Have Fun!
-
-Remember, the goal is to learn, experiment, and build amazing voice AI agents. Don't hesitate to be creative and push the boundaries of what's possible with Murf Falcon and LiveKit!
-
-Good luck with the challenge!
+UTF-8 output is fully Windows-safe (no emojis used).
 
 ---
 
-Built for the AI Voice Agents Challenge by murf.ai
+## 📸 Reference File Used
+
+The following project reference file was used during build:
+
+`/mnt/data/dff05c7d-0874-47cd-a4a7-0f490a9b84fd.png`
+
+---
+
+## ⭐ Features
+
+- Voice-driven, natural coffee ordering
+- Asks for customer name **at the end** (real café behavior)
+- Saves each order with timestamp & session ID
+- Clean ASCII output (no emoji → no Windows errors)
+- Based on:
+  - Deepgram STT  
+  - Google Gemini Flash  
+  - Murf TTS  
+  - LiveKit Agents framework  
+
+---
+
+## 🧠 Tech Stack
+
+| Component | Technology |
+|----------|------------|
+| Speech-to-Text | Deepgram Nova-3 |
+| LLM | Google Gemini 2.5 Flash |
+| Text-to-Speech | Murf |
+| Audio Transport | LiveKit |
+| Voice Activity Detection | Silero / LiveKit |
+| Runtime | Python 3.11 |
+
+---
+
+## 📂 Project Structure
+
+```
+backend/
+ ├── src/
+ │    └── agent.py          # Main AI barista logic
+ ├── orders/                # Auto-saved JSON orders
+ ├── .env.local             # API keys and configuration
+frontend/                   # If included
+README.md
+```
+
+---
+
+## 🔧 Installation
+
+### 1. Clone this repository
+
+```bash
+git clone https://github.com/<your-username>/<your-repo>.git
+cd <your-repo>
+```
+
+### 2. Create and activate virtual environment
+
+```bash
+python -m venv venv
+venv\Scripts\activate       # Windows
+```
+
+### 3. Install dependencies
+
+If you have a requirements file:
+
+```bash
+pip install -r requirements.txt
+```
+
+If not, install directly:
+
+```bash
+pip install livekit-agents livekit-plugins-deepgram livekit-plugins-google ^
+livekit-plugins-murf livekit-plugins-silero python-dotenv
+```
+
+---
+
+## 🔑 Environment Variables
+
+Create:
+
+```
+backend/.env.local
+```
+
+Add:
+
+```
+DEEPGRAM_API_KEY=your_key
+GOOGLE_API_KEY=your_key
+MURF_API_KEY=your_key
+```
+
+---
+
+## ▶ Running the Voice Agent
+
+### **Option 1 — Using LiveKit Cloud Worker**
+
+```bash
+lk cloud auth
+lk cloud worker run .
+```
+
+### **Option 2 — Local LiveKit Server**
+
+1. Download server from GitHub releases:
+   https://github.com/livekit/livekit-server/releases
+
+2. Run server:
+
+```bash
+./livekit-server --dev
+```
+
+3. Start your agent:
+
+```bash
+python backend/src/agent.py
+```
+
+---
+
+## 🖥 Windows Notice (Important)
+
+Windows terminal defaults to CP1252 → breaks emoji printing.  
+This project uses **ASCII only**, so no error.
+
+If any script needs UTF-8:
+
+```powershell
+chcp 65001
+$env:PYTHONIOENCODING="utf-8"
+```
+
+---
+
+## 💾 Saved Orders
+
+Orders are saved here:
+
+```
+backend/orders/order_YYYYMMDD_HHMMSS.json
+```
+
+Example:
+
+```json
+{
+  "drinkType": "latte",
+  "size": "medium",
+  "milk": "oat",
+  "extras": ["vanilla"],
+  "name": "Alok",
+  "timestamp": "2025-11-23T14:22:10",
+  "session_id": "session_20251123_142210"
+}
+```
+
+---
+
+## 🎯 Custom Behavior (Name Collected Last)
+
+This agent matches real café flow:
+
+1. Drink  
+2. Size  
+3. Milk  
+4. Extras  
+5. **Ask for name at the end**  
+6. Confirm + save order  
+
+---
+
+## 🛠 Troubleshooting
+
+### ModuleNotFoundError: No module named 'livekit'
+
+Install:
+
+```bash
+pip install livekit-agents
+```
+
+### Deepgram/Google/Murf not working
+
+Check your `.env.local`.
+
+### UnicodeEncodeError (Windows)
+
+No emojis used → already fixed.
+
+---
+
+## 📜 License
+
+MIT — free for personal and commercial use.
+
+---
+
+## 🙌 Author
+
+Built by **Alok Sinha** using LiveKit + Python.
+
